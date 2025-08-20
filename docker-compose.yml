@@ -1,0 +1,29 @@
+version: '3.8'
+services:
+  nextjs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongodbnext
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/finance_tracker_next
+      - ACCESS_TOKEN_EXPIRY=1d
+      - ACCESS_TOKEN_SECRET=1234
+      - CORS_ORIGIN=http://localhost:5173
+
+  mongodbnext:
+    image: mongo:latest
+    container_name: mongodb_container_next
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      MONGO_INITDB_DATABASE: finance_tracker_next
+
+volumes:
+  mongodb_data:
+    driver: local
