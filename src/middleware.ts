@@ -1,7 +1,7 @@
 import { auth, signOut } from '@/lib/auth';
 import { NextResponse } from 'next/server';
 
-export default auth((req) => {
+export default auth(req => {
   const { nextUrl } = req;
 
   const publicPaths = ['/login', '/register'];

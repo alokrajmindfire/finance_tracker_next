@@ -1,22 +1,21 @@
-"use client";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import Spinner from "@/components/ui/spinner";
-import { LogOut, Home, Plus, Tag } from "lucide-react";
-import { useSession , signOut} from "next-auth/react"
-
+'use client';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Button } from '@/components/ui/button';
+import Spinner from '@/components/ui/spinner';
+import { LogOut, Home, Plus, Tag } from 'lucide-react';
+import { useSession, signOut } from 'next-auth/react';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: session, status } = useSession()
+  const { data: session, status } = useSession();
   // console.log(status,"status")
   const navigationItems = [
-    { path: "/", label: "Dashboard", icon: Home },
-    { path: "/transaction", label: "Transactions", icon: Plus },
-    { path: "/categories", label: "Categories", icon: Tag },
+    { path: '/', label: 'Dashboard', icon: Home },
+    { path: '/transaction', label: 'Transactions', icon: Plus },
+    { path: '/categories', label: 'Categories', icon: Tag },
   ];
-  if (status === "loading") {
+  if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="flex flex-col items-center space-y-4">
@@ -36,16 +35,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 Finance Tracker
               </h1>
               <nav className="hidden md:flex space-x-6">
-                {navigationItems.map((item) => {
+                {navigationItems.map(item => {
                   const Icon = item.icon;
                   return (
                     <Link
                       key={item.path}
                       href={item.path}
-                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${pathname === item.path
-                          ? "text-blue-600 bg-blue-50"
-                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-                        }`}
+                      className={`flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                        pathname === item.path
+                          ? 'text-blue-600 bg-blue-50'
+                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                      }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span>{item.label}</span>
@@ -86,16 +86,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
         <div className="grid grid-cols-3 gap-1 p-2">
-          {navigationItems.map((item) => {
+          {navigationItems.map(item => {
             const Icon = item.icon;
             return (
               <Link
                 key={item.path}
                 href={item.path}
-                className={`flex flex-col items-center justify-center py-2 px-1 rounded-md transition-colors ${pathname === item.path
-                    ? "text-blue-600 bg-blue-50"
-                    : "text-gray-600"
-                  }`}
+                className={`flex flex-col items-center justify-center py-2 px-1 rounded-md transition-colors ${
+                  pathname === item.path
+                    ? 'text-blue-600 bg-blue-50'
+                    : 'text-gray-600'
+                }`}
               >
                 <Icon className="h-5 w-5" />
                 <span className="text-xs mt-1">{item.label}</span>

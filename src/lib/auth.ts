@@ -21,7 +21,7 @@ export const {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
       },
-      authorize: async (credentials) => {
+      authorize: async credentials => {
         const email: string = credentials.email?.toString() || '';
         const user = await userRepo.findByEmail(email);
         if (!user) return null;

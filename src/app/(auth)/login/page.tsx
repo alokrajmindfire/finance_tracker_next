@@ -78,7 +78,9 @@ export default function LoginPage() {
                 disabled={loading}
               />
               {errors.password && (
-                <p className="text-red-600 text-sm">{errors.password.message}</p>
+                <p className="text-red-600 text-sm">
+                  {errors.password.message}
+                </p>
               )}
             </div>
 
