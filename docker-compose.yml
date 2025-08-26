@@ -11,9 +11,7 @@ services:
       - mongodbnext
     environment:
       - MONGODB_URI=mongodb://mongodbnext:27017/finance_tracker_next
-      - ACCESS_TOKEN_EXPIRY=1d
-      - ACCESS_TOKEN_SECRET=1234
-      - CORS_ORIGIN=http://localhost:5173
+      - AUTH_SECRET="MOB6w/ImhnD7GbpJ1UQKsSe8WugQmNdDVGci5qCnp1Y="
 
   mongodbnext:
     image: mongo:latest
@@ -29,7 +27,7 @@ services:
     image: nginx:alpine
     container_name: nginx_proxy
     ports:
-      - '80:80'
+      - '3000:80'
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
     depends_on:

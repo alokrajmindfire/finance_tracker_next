@@ -1,19 +1,55 @@
 'use client';
 
-import { useActionState } from 'react';
-import { registerUserAction } from '@/lib/actions/auth.server';
+import { useState } from 'react';
+import Link from 'next/link';
+import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
+import { registerUserAction } from '@/lib/actions/auth.server';
+import { signIn } from 'next-auth/react';
+
+type RegisterFormInputs = {
+  fullName: string;
+  email: string;
+  password: string;
+};
 
 export default function RegisterPage() {
-  const [state, formAction, isPending] = useActionState(
-    registerUserAction,
-    undefined
-  );
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormInputs>();
+
+  const onSubmit = async (data: RegisterFormInputs) => {
+    setLoading(true);
+    setServerError('');
+
+    const formData = new FormData();
+    formData.append('fullName', data.fullName);
+    formData.append('email', data.email);
+    formData.append('password', data.password);
+
+    const result = await registerUserAction(undefined, formData);
+    if (result.success) {
+      await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        callbackUrl: '/',
+      });
+    } else {
+      setServerError(result.error || 'Something went wrong. Please try again.');
+    }
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -24,49 +60,68 @@ export default function RegisterPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {serverError && (
+              <p className="text-red-600 text-sm text-center">{serverError}</p>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="fullName">Full Name</Label>
               <Input
                 id="fullName"
-                name="fullName"
                 type="text"
-                placeholder="Enter your fullname"
-                required
-                disabled={isPending}
+                placeholder="Enter your full name"
+                {...register('fullName', { required: 'Full name is required' })}
+                disabled={loading}
               />
+              {errors.fullName && (
+                <p className="text-red-600 text-sm">
+                  {errors.fullName.message}
+                </p>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                name="email"
                 type="email"
                 placeholder="Enter your email"
-                required
-                disabled={isPending}
+                {...register('email', { required: 'Email is required' })}
+                disabled={loading}
               />
+              {errors.email && (
+                <p className="text-red-600 text-sm">{errors.email.message}</p>
+              )}
             </div>
+
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
-                name="password"
                 type="password"
                 placeholder="Create a password"
-                required
-                disabled={isPending}
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: {
+                    value: 6,
+                    message: 'Password must be at least 6 characters',
+                  },
+                })}
+                disabled={loading}
               />
+              {errors.password && (
+                <p className="text-red-600 text-sm">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
-            <Button type="submit" className="w-full" disabled={isPending}>
-              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Create Account
             </Button>
           </form>
-
-          {state && (
-            <p className="text-red-600 text-sm mt-2 text-center">{state}</p>
-          )}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

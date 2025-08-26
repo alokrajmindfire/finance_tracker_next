@@ -3,6 +3,7 @@ import GitHub from 'next-auth/providers/github';
 import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { UserRepository } from './repositories/user.repository';
+import connectDB from './database/db';
 
 const userRepo = new UserRepository();
 export const {
@@ -13,7 +14,6 @@ export const {
 } = NextAuth({
   providers: [
     GitHub,
-
     Credentials({
       id: 'credentials',
       name: 'Credentials',
@@ -22,6 +22,7 @@ export const {
         password: { label: 'Password', type: 'password' },
       },
       authorize: async credentials => {
+        await connectDB();
         const email: string = credentials.email?.toString() || '';
         const user = await userRepo.findByEmail(email);
         if (!user) return null;
@@ -46,4 +47,5 @@ export const {
   pages: {
     signIn: '/login',
   },
+  trustHost: true,
 });

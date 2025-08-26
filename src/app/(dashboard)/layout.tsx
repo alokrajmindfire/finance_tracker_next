@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Spinner from '@/components/ui/spinner';
 import { LogOut, Home, Plus, Tag } from 'lucide-react';
@@ -9,6 +9,8 @@ import { useSession, signOut } from 'next-auth/react';
 export default function Layout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const router = useRouter();
+
   // console.log(status,"status")
   const navigationItems = [
     { path: '/', label: 'Dashboard', icon: Home },
@@ -25,6 +27,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push('/login');
+  };
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white shadow-sm border-b">
@@ -55,7 +62,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              {session?.user ? (
+              {session?.user && (
                 <>
                   <span className="text-sm text-gray-600">
                     Welcome, {session.user.name}
@@ -63,17 +70,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => signOut()}
+                    onClick={handleLogout}
                     className="flex items-center space-x-2"
                   >
                     <LogOut className="h-4 w-4" />
                     <span>Logout</span>
                   </Button>
                 </>
-              ) : (
-                <Link href="/login">
-                  <Button size="sm">Login</Button>
-                </Link>
               )}
             </div>
           </div>
