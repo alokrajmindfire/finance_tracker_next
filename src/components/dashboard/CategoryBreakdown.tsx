@@ -12,9 +12,8 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getDashboardCategoryBreakdown } from '@/lib/actions/dashboard.actions';
 import type { CategoryBreakdownItem } from '@/lib/types/types';
+import { useDashboardCategoryBreakdown } from '@/hooks/dashboard';
 
 function DateSelector({
   month,
@@ -69,12 +68,10 @@ export function CategoryBreakdown() {
   );
   const [year, setYear] = useState(String(new Date().getFullYear()));
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['category-breakdown', month, year],
-    queryFn: () => getDashboardCategoryBreakdown(month, year),
-    staleTime: 1000 * 60 * 5,
-    retry: 1,
-  });
+  const { data, isLoading, isError } = useDashboardCategoryBreakdown(
+    month,
+    year
+  );
 
   return (
     <Card>

@@ -1,5 +1,4 @@
 'use client';
-
 import { ITransactionType } from '@/lib/types/types';
 import {
   Table,
@@ -11,20 +10,16 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Edit, Plus, Trash2 } from 'lucide-react';
-import { deleteTransaction } from '@/lib/actions/transaction.actions';
-import { useTransition } from 'react';
-import dynamic from 'next/dynamic';
-const TransactionForm = dynamic(() => import('./TransactionForm'), {
-  ssr: false,
-  loading: () => <span>Loading form...</span>,
-});
+import TransactionForm from './TransactionForm';
+import { useDeleteTransaction } from '@/hooks/transactions';
 
 interface Props {
   transactions: ITransactionType[];
+  isFetching?: boolean;
 }
 
-const TransactionTable = ({ transactions }: Props) => {
-  const [isPending, startTransition] = useTransition();
+export default function TransactionTable({ transactions, isFetching }: Props) {
+  const deleteMutation = useDeleteTransaction();
 
   return (
     <>
@@ -40,6 +35,11 @@ const TransactionTable = ({ transactions }: Props) => {
           </Button>
         </TransactionForm>
       </div>
+
+      {isFetching && (
+        <p className="text-sm text-gray-500 mb-2">Refreshing...</p>
+      )}
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -66,10 +66,8 @@ const TransactionTable = ({ transactions }: Props) => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() =>
-                    startTransition(() => deleteTransaction(item._id))
-                  }
-                  disabled={isPending}
+                  onClick={() => deleteMutation.mutate(item._id)}
+                  disabled={deleteMutation.isPending}
                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -81,5 +79,4 @@ const TransactionTable = ({ transactions }: Props) => {
       </Table>
     </>
   );
-};
-export default TransactionTable;
+}

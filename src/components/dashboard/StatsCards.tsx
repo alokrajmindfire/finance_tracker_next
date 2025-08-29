@@ -1,115 +1,122 @@
 'use client';
 
+import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingDown, DollarSign, Wallet } from 'lucide-react';
-import type { DashboardStats } from '@/lib/types/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useQuery } from '@tanstack/react-query';
-import { getDashboardOverview } from '@/lib/actions/dashboard.actions';
+import { useDashboardOverview } from '@/hooks/dashboard';
+import { Wallet, DollarSign, TrendingDown } from 'lucide-react';
 
-interface StatsCardsProps {
-  stats?: DashboardStats;
-  isLoading?: boolean;
-  error?: string | null;
-}
-export function OverviewFetcher() {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['dashboard-overview'],
-    queryFn: getDashboardOverview,
-    staleTime: 1000 * 60 * 5,
-    retry: 1,
-  });
+const currencyFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+});
 
+const StatCard = React.memo(function StatCard({
+  title,
+  value,
+  Icon,
+  color,
+}: {
+  title: string;
+  value: number;
+  Icon: React.ComponentType<{ className?: string }>;
+  color: string;
+}) {
   return (
-    <StatsCards
-      stats={data?.data}
-      isLoading={isLoading}
-      error={isError ? (data?.error ?? 'Failed to load') : null}
-    />
+    <Card
+      className="hover:shadow-md transition-shadow"
+      aria-label={`Stat card for ${title}, value ${currencyFormatter.format(value)}`}
+    >
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-gray-600">
+          {title}
+        </CardTitle>
+        <Icon className={`h-4 w-4 ${color}`} aria-hidden="true" />
+      </CardHeader>
+      <CardContent>
+        <div className={`text-2xl font-bold ${color}`}>
+          {currencyFormatter.format(value)}
+        </div>
+      </CardContent>
+    </Card>
   );
-}
+});
 
-export const StatsCards: React.FC<StatsCardsProps> = ({
-  stats,
-  isLoading,
-  error,
-}) => {
-  if (isLoading) {
+const LoadingState = () => (
+  <div
+    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+    style={{ minHeight: '140px' }}
+  >
+    {[0, 1, 2].map(i => (
+      <Card
+        key={i}
+        className="hover:shadow-md transition-shadow"
+        aria-busy="true"
+      >
+        <CardHeader>
+          <Skeleton className="h-4 w-24 mb-2" />
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="h-8 w-32" />
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
+
+const ErrorState = ({ message }: { message: string }) => (
+  <div className="text-red-600 text-sm">
+    Failed to load dashboard stats: {message}
+  </div>
+);
+
+export const StatsCards = () => {
+  const { data, isLoading, isFetching, isError, error } =
+    useDashboardOverview();
+
+  if (isLoading || isFetching) return <LoadingState />;
+  if (isError)
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="hover:shadow-md transition-shadow">
-            <CardHeader>
-              <Skeleton className="h-4 w-24 mb-2" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-32" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <ErrorState
+        message={error instanceof Error ? error.message : 'Unknown error'}
+      />
     );
-  }
 
-  if (error) {
-    return (
-      <div className="text-red-600 text-sm">
-        Failed to load dashboard stats: {error}
-      </div>
-    );
-  }
-
-  if (!stats) {
-    return <p className="text-gray-600">No stats available.</p>;
-  }
+  const stats = data?.data;
+  if (!stats) return <p className="text-gray-600">No stats available.</p>;
 
   const cards = [
     {
       title: 'Total Balance',
       value: stats.currentBalance,
-      icon: Wallet,
+      Icon: Wallet,
       color: stats.currentBalance >= 0 ? 'text-green-600' : 'text-red-600',
     },
     {
       title: 'Total Expenses',
       value: stats.totalExpense,
-      icon: TrendingDown,
+      Icon: TrendingDown,
       color: 'text-red-600',
     },
     {
       title: 'Total Income',
       value: stats.totalIncome,
-      icon: DollarSign,
+      Icon: DollarSign,
       color: 'text-blue-600',
     },
   ];
 
-  const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-    }).format(amount);
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {cards.map(card => {
-        const Icon = card.icon;
-        return (
-          <Card key={card.title} className="hover:shadow-md transition-shadow">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-gray-600">
-                {card.title}
-              </CardTitle>
-              <Icon className={`h-4 w-4 ${card.color}`} />
-            </CardHeader>
-            <CardContent>
-              <div className={`text-2xl font-bold ${card.color}`}>
-                {formatCurrency(card.value)}
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {cards.map(({ title, value, Icon, color }) => (
+        <StatCard
+          key={title}
+          title={title}
+          value={value}
+          Icon={Icon}
+          color={color}
+        />
+      ))}
     </div>
   );
 };

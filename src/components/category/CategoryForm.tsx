@@ -1,7 +1,7 @@
 'use client';
 
-import { useTransition, useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { useCreateCategory } from '@/hooks/categories';
 import {
   Dialog,
   DialogTrigger,
@@ -14,45 +14,34 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { createCategory } from '@/lib/actions/category.actions';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
 
 type CategoryFormValues = {
   name: string;
 };
 
 export function CategoryForm() {
-  const [isPending, startTransition] = useTransition();
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-
+  const [isOpen, setIsOpen] = useState(false);
   const {
     register,
     handleSubmit,
-    formState: { errors },
     reset,
-  } = useForm<CategoryFormValues>({
-    defaultValues: { name: '' },
-  });
+    formState: { errors },
+  } = useForm<CategoryFormValues>();
+  const { mutate, isPending, isError, error } = useCreateCategory();
 
   const onSubmit = (values: CategoryFormValues) => {
-    setServerError(null);
-    startTransition(async () => {
-      try {
-        await createCategory(values.name);
+    mutate(values.name, {
+      onSuccess: () => {
         reset();
-        setIsOpen(!isOpen);
-      } catch (err: any) {
-        console.log('err', err);
-        setServerError(err.message || 'Something went wrong');
-      }
+        setIsOpen(false);
+      },
     });
   };
-  const handleOpenChange = () => {
-    setIsOpen(!isOpen);
-  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button
           size="sm"
@@ -80,12 +69,13 @@ export function CategoryForm() {
                   message: 'Name must be at least 2 chars',
                 },
               })}
-              className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             {errors.name && (
               <p className="text-red-500">{errors.name.message}</p>
             )}
-            {serverError && <p className="text-red-500">{serverError}</p>}
+            {isError && (
+              <p className="text-red-500">{(error as Error).message}</p>
+            )}
           </div>
 
           <DialogFooter>

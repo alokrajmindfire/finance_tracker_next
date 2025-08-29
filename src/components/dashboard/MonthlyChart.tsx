@@ -15,9 +15,8 @@ import { Skeleton } from '../ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { getDashboardMonthlySummary } from '@/lib/actions/dashboard.actions';
 import type { MonthlySummaryItem } from '@/lib/types/types';
+import { useDashboardMonthlySummary } from '@/hooks/dashboard';
 
 function YearSelector({
   year,
@@ -47,12 +46,7 @@ function YearSelector({
 export const MonthlyChart: React.FC = () => {
   const [year, setYear] = useState(String(new Date().getFullYear()));
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['monthly-summary', year],
-    queryFn: () => getDashboardMonthlySummary(year),
-    staleTime: 1000 * 60 * 5,
-    retry: 2,
-  });
+  const { data, isLoading, isError } = useDashboardMonthlySummary(year);
 
   return (
     <Card>
