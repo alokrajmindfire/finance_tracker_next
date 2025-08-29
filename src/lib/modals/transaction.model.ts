@@ -50,5 +50,5 @@ const transactionSchema: Schema<ITransaction> = new Schema(
 );
 
 export const Transaction: Model<ITransaction> =
-  mongoose.models.Transaction ||
+  (mongoose.models?.Transaction as Model<ITransaction>) ||
   mongoose.model<ITransaction>('Transaction', transactionSchema);

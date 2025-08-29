@@ -20,6 +20,7 @@ export class UserRepository {
   }
 
   async exists(email: string): Promise<boolean> {
+    await connectDB();
     return !!(await this.findByEmail(email));
   }
 }

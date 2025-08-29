@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 type LoginFormInputs = {
   email: string;
@@ -18,7 +19,7 @@ type LoginFormInputs = {
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
+  const router = useRouter();
   const {
     register,
     handleSubmit,
@@ -26,14 +27,35 @@ export default function LoginPage() {
   } = useForm<LoginFormInputs>();
 
   const onSubmit = async (data: LoginFormInputs) => {
-    setLoading(true);
-    setError('');
-    await signIn('credentials', {
-      email: data.email,
-      password: data.password,
-      callbackUrl: '/',
-    });
-    setLoading(false);
+    try {
+      setLoading(true);
+      setError('');
+      const res = await signIn('credentials', {
+        email: data.email,
+        password: data.password,
+        callbackUrl: '/',
+        redirect: false,
+      });
+      console.log('res', res?.error);
+      if (res?.error) {
+        if (
+          res.error === 'CredentialsSignin' ||
+          res.error === 'Configuration'
+        ) {
+          setError('Invalid email or password.');
+        } else {
+          setError('An unexpected error occurred. Please try again.');
+        }
+      }
+      if (res.ok) {
+        router.push('/');
+      }
+
+      setLoading(false);
+    } catch (error) {
+      setError('An unexpected error occurred. Please try again.');
+      console.log('error', error);
+    }
   };
 
   return (
@@ -46,7 +68,9 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-            {error && <p className="text-red-600 text-sm">{error}</p>}
+            {error && (
+              <p className="text-red-600 text-sm text-center">{error}</p>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
