@@ -2,6 +2,7 @@
 
 import bcrypt from 'bcryptjs';
 import { UserRepository } from '@/lib/repositories/user.repository';
+import { auth } from '../auth';
 
 const userRepo = new UserRepository();
 
@@ -56,4 +57,17 @@ export async function registerUser(
       error: message,
     };
   }
+}
+
+export async function requireUserIdService(): Promise<string> {
+  const session = await auth();
+  if (!session?.user?.email) {
+    throw new Error('Unauthorized: No session found');
+  }
+  const user = await userRepo.findByEmail(session?.user.email);
+  if (!user?._id) {
+    throw new Error('Unauthorized: No session found');
+  }
+
+  return user._id.toString();
 }

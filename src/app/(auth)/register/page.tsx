@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { registerUserAction } from '@/lib/actions/auth.server';
+import { registerUserAction } from '@/lib/actions/auth.actions';
 import { signIn } from 'next-auth/react';
 
 type RegisterFormInputs = {
