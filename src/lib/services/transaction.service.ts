@@ -44,7 +44,6 @@ export class TransactionService {
     const matchCondition: any = { userId, type: 'expense' };
     if (Object.keys(dateFilter).length) matchCondition.date = dateFilter;
 
-    // Monthly aggregation
     const monthlyAggregation = await this.repo.aggregate([
       { $match: matchCondition },
       {
@@ -63,7 +62,6 @@ export class TransactionService {
       values: monthlyAggregation.map(m => m.totalAmount),
     };
 
-    // Category aggregation
     const categoryAggregation = await this.repo.aggregate([
       { $match: matchCondition },
       { $group: { _id: '$categoryId', totalAmount: { $sum: '$amount' } } },
@@ -83,7 +81,6 @@ export class TransactionService {
       values: categoryAggregation.map(c => c.totalAmount),
     };
 
-    // Category trends
     const categoryTrendAggregation = await this.repo.aggregate([
       { $match: matchCondition },
       {

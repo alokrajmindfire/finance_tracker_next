@@ -1,5 +1,4 @@
 import { Category } from '../modals/category.model';
-import { CategoryDTO } from '../services/category.service';
 
 export class CategoryRepository {
   static async findByUserId(userId: string) {

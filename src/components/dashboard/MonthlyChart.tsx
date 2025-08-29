@@ -1,4 +1,5 @@
 'use client';
+
 import {
   BarChart,
   Bar,
@@ -14,7 +15,9 @@ import { Skeleton } from '../ui/skeleton';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getDashboardMonthlySummary } from '@/lib/actions/dashboard.actions';
+import type { MonthlySummaryItem } from '@/lib/types/types';
 
 function YearSelector({
   year,
@@ -43,11 +46,14 @@ function YearSelector({
 
 export const MonthlyChart: React.FC = () => {
   const [year, setYear] = useState(String(new Date().getFullYear()));
-  const res = getDashboardMonthlySummary(year);
 
-  if (!res.success || !res.data) {
-    throw new Error(res.error ?? 'Failed to load monthly summary');
-  }
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['monthly-summary', year],
+    queryFn: () => getDashboardMonthlySummary(year),
+    staleTime: 1000 * 60 * 5,
+    retry: 2,
+  });
+
   return (
     <Card>
       <CardHeader>
@@ -62,12 +68,14 @@ export const MonthlyChart: React.FC = () => {
               <Skeleton key={i} className="h-4 mb-2" />
             ))}
           </div>
-        ) : isError || !monthlySummary?.success ? (
-          <p className="text-red-600">Failed to load category breakdown.</p>
+        ) : isError || !data?.success ? (
+          <p className="text-red-600">
+            {data?.error ?? 'Failed to load monthly summary'}
+          </p>
         ) : (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlySummary.data}>
+              <BarChart data={data.data as MonthlySummaryItem[]}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={value => `$${value.toLocaleString()}`} />

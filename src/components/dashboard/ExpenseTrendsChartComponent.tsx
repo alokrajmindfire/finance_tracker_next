@@ -17,12 +17,27 @@ import {
   Cell,
 } from 'recharts';
 import { Skeleton } from '../ui/skeleton';
-import type { ExpenseTrendsChart } from '@/types';
+import type { ExpenseTrendsChart } from '@/lib/types/types';
 
 interface ExpenseTrendsChartProps {
   data?: ExpenseTrendsChart;
   isLoading?: boolean;
   error?: string | null;
+}
+
+interface MonthlyExpense {
+  month: string;
+  expenses: number;
+}
+
+interface TrendEntry {
+  month: string;
+  [category: string]: string | number;
+}
+
+interface PieEntry {
+  name: string;
+  value: number;
 }
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -32,7 +47,6 @@ export default function ExpenseTrendsChartComponent({
   isLoading,
   error,
 }: ExpenseTrendsChartProps) {
-  // 🔹 Loading state
   if (isLoading) {
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -45,7 +59,6 @@ export default function ExpenseTrendsChartComponent({
     );
   }
 
-  // 🔹 Error state
   if (error) {
     return (
       <Card className="p-4">
@@ -54,7 +67,6 @@ export default function ExpenseTrendsChartComponent({
     );
   }
 
-  // 🔹 Empty state
   if (!data) {
     return (
       <Card className="p-4">
@@ -63,30 +75,28 @@ export default function ExpenseTrendsChartComponent({
     );
   }
 
-  // ✅ Transform data for charts
   const { monthlyExpenses, categoryExpenses, categoryTrends, labels } = data;
 
-  const monthlyData = labels.map((label, i) => ({
+  const monthlyData: MonthlyExpense[] = labels.map((label, i) => ({
     month: label,
     expenses: monthlyExpenses.values[i] ?? 0,
   }));
 
-  const trendData = labels.map((label, idx) => {
-    const entry: Record<string, number | string> = { month: label };
+  const trendData: TrendEntry[] = labels.map((label, idx) => {
+    const entry: TrendEntry = { month: label };
     Object.keys(categoryTrends).forEach(cat => {
-      entry[cat] = categoryTrends[cat][idx] ?? 0;
+      entry[cat] = categoryTrends[cat]?.[idx] ?? 0;
     });
     return entry;
   });
 
-  const pieData = categoryExpenses.categories.map((cat, i) => ({
+  const pieData: PieEntry[] = categoryExpenses.categories.map((cat, i) => ({
     name: cat,
     value: categoryExpenses.values[i] ?? 0,
   }));
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Monthly Bar Chart */}
       <Card className="col-span-1 lg:col-span-2">
         <CardHeader>
           <CardTitle>Monthly Expenses</CardTitle>
@@ -109,7 +119,6 @@ export default function ExpenseTrendsChartComponent({
         </CardContent>
       </Card>
 
-      {/* Category Pie Chart */}
       <Card>
         <CardHeader>
           <CardTitle>Category Distribution</CardTitle>
@@ -140,7 +149,6 @@ export default function ExpenseTrendsChartComponent({
         </CardContent>
       </Card>
 
-      {/* Category Trends Line Chart */}
       <Card className="col-span-1 lg:col-span-3">
         <CardHeader>
           <CardTitle>Category Trends Over Time</CardTitle>

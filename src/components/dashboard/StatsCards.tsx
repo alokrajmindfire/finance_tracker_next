@@ -4,11 +4,29 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingDown, DollarSign, Wallet } from 'lucide-react';
 import type { DashboardStats } from '@/lib/types/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useQuery } from '@tanstack/react-query';
+import { getDashboardOverview } from '@/lib/actions/dashboard.actions';
 
 interface StatsCardsProps {
-  stats?: DashboardStats; // optional for safety
+  stats?: DashboardStats;
   isLoading?: boolean;
   error?: string | null;
+}
+export function OverviewFetcher() {
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['dashboard-overview'],
+    queryFn: getDashboardOverview,
+    staleTime: 1000 * 60 * 5,
+    retry: 1,
+  });
+
+  return (
+    <StatsCards
+      stats={data?.data}
+      isLoading={isLoading}
+      error={isError ? (data?.error ?? 'Failed to load') : null}
+    />
+  );
 }
 
 export const StatsCards: React.FC<StatsCardsProps> = ({
@@ -17,7 +35,6 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   error,
 }) => {
   if (isLoading) {
-    // 🔹 Loading skeletons
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {[...Array(3)].map((_, i) => (
@@ -35,7 +52,6 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   }
 
   if (error) {
-    // 🔹 Error state
     return (
       <div className="text-red-600 text-sm">
         Failed to load dashboard stats: {error}

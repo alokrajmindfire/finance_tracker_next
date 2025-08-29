@@ -65,7 +65,7 @@ export class OverviewService {
       { $unwind: '$category' },
       {
         $project: {
-          categoryId: '$_id',
+          categoryId: { $toString: '$_id' },
           categoryName: '$category.name',
           total: 1,
           _id: 0,

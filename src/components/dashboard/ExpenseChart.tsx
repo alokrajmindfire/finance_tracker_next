@@ -2,27 +2,17 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ExpenseTrendsChart } from '@/lib/types/types';
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { getSpendingOverview } from '@/lib/actions/transaction.actions';
 import ExpenseTrendsChartComponent from './ExpenseTrendsChartComponent';
 
 export default function ExpenseChart() {
-  const [data, setData] = useState<ExpenseTrendsChart | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['spending-overview'],
+    queryFn: getSpendingOverview,
+  });
 
-  useEffect(() => {
-    getSpendingOverview()
-      .then(res => {
-        if (res.success) setData(res.data);
-        else setError(res.error ?? 'Failed to load');
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="max-w-md">
         <CardHeader>
@@ -38,7 +28,7 @@ export default function ExpenseChart() {
     );
   }
 
-  if (error || !data) {
+  if (isError || !data?.success) {
     return (
       <Card className="max-w-md">
         <CardHeader>
@@ -51,5 +41,5 @@ export default function ExpenseChart() {
     );
   }
 
-  return <ExpenseTrendsChartComponent data={data} />;
+  return <ExpenseTrendsChartComponent data={data.data} />;
 }

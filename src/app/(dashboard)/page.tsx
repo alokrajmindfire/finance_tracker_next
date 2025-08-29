@@ -1,18 +1,9 @@
 import { Suspense } from 'react';
-import { getDashboardOverview } from '@/lib/actions/dashboard.actions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StatsCards } from '@/components/dashboard/StatsCards';
 import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 import { MonthlyChart } from '@/components/dashboard/MonthlyChart';
 import ExpenseChart from '@/components/dashboard/ExpenseChart';
-
-async function OverviewFetcher() {
-  const res = await getDashboardOverview();
-  if (!res.success) {
-    throw new Error(res.error ?? 'Failed to load overview');
-  }
-  return <StatsCards stats={res.data} />;
-}
+import { OverviewFetcher } from '@/components/dashboard/StatsCards';
 
 export default function DashboardOverview() {
   return (
@@ -20,6 +11,15 @@ export default function DashboardOverview() {
       <Suspense fallback={<Skeleton className="h-32 w-full" />}>
         <OverviewFetcher />
       </Suspense>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <CategoryBreakdown />
+        </Suspense>
+        <Suspense fallback={<Skeleton className="h-64 w-full" />}>
+          <MonthlyChart />
+        </Suspense>
+      </div>
 
       <Suspense fallback={<Skeleton className="h-96 w-full" />}>
         <ExpenseChart />
