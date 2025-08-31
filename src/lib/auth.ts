@@ -50,7 +50,7 @@ export const {
   ],
   pages: {
     signIn: '/login',
-    error: '/auth/error',
+    error: '/error',
   },
   trustHost: true,
 });

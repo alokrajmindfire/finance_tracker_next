@@ -1,7 +1,9 @@
-import { Footer, Layout, Navbar } from 'nextra-theme-docs';
+import { Layout, Navbar } from 'nextra-theme-docs';
 import { Banner } from 'nextra/components';
 import { getPageMap } from 'nextra/page-map';
 import 'nextra-theme-docs/style.css';
+import './globals.css';
+import type { PageMapItem } from 'nextra';
 
 export const metadata = {
   title: 'Finance Tracker Docs',
@@ -16,34 +18,47 @@ const banner = (
 );
 
 const navbar = (
-  <Navbar
-    logo={<b style={{ color: '#10b981' }}>FinanceTracker</b>}
-
-    // optional: add extra nav links
-    // projectLink=
-    // links={[
-    //   { href: '/dashboard', name: 'Dashboard' },
-    //   { href: '/transaction/overview', name: 'Transactions' },
-    // ]}
-  />
+  <Navbar logo={<b style={{ color: '#10b981' }}>FinanceTracker</b>} />
 );
 
-const footer = (
-  <Footer>
-    MIT {new Date().getFullYear()} © Finance Tracker. Built with ❤️ by Alok.
-  </Footer>
-);
-
-export default async function RootLayout({
+export default async function DocsLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  let pageMap: any[] = await getPageMap();
+
+  const order: string[] = [
+    'docs',
+    'index',
+    'categories',
+    'transaction',
+    'login',
+    'register',
+  ];
+
+  pageMap = order
+    .map(key => {
+      const page = pageMap.find(p => p.name === key);
+      if (page) {
+        if (page.name === 'index') {
+          page.title = 'Dashboard';
+        }
+      }
+      return page;
+    })
+    .filter((p): p is PageMapItem => Boolean(p));
+
   return (
     <Layout
       banner={banner}
       navbar={navbar}
-      pageMap={await getPageMap()}
-      footer={footer}
-      sidebar={{ defaultMenuCollapseLevel: 1 }}
+      pageMap={pageMap}
+      footer={undefined}
+      sidebar={{ defaultMenuCollapseLevel: 1, defaultOpen: true }}
+      search={<></>}
+      editLink={<></>}
+      docsRepositoryBase={
+        'https://github.com/alokrajmindfire/finance_tracker_next'
+      }
     >
       {children}
     </Layout>
