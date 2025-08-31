@@ -3,7 +3,8 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import './globals.css';
 import { SessionProvider } from 'next-auth/react';
 import Providers from './providers';
-
+import { Toaster } from '@/components/ui/sonner';
+import { Layout } from 'nextra-theme-docs';
 const geistSans = Geist({
   variable: '--font-geist-sans',
   subsets: ['latin'],
@@ -27,12 +28,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionProvider>
-          <Providers>{children}</Providers>
+          <Providers>
+            {children}
+            <Toaster richColors />
+          </Providers>
         </SessionProvider>
       </body>
     </html>

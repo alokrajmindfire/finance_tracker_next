@@ -12,7 +12,6 @@ export function useTransactions() {
   return useQuery<ITransactionType[], Error>({
     queryKey: ['transactions'],
     queryFn: getTransactions,
-    staleTime: 1000 * 60,
     retry: 1,
   });
 }

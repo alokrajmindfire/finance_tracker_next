@@ -29,6 +29,7 @@ import {
   useCreateTransaction,
   useUpdateTransaction,
 } from '@/hooks/transactions';
+import { toast } from 'sonner';
 
 interface FormData {
   type: 'income' | 'expense';
@@ -114,16 +115,24 @@ const TransactionForm = ({ data, children }: Props) => {
         { id: data._id, data: transactionData },
         {
           onSuccess: () => {
+            toast.info('Transaction updated successfully');
             reset();
             setIsOpen(false);
+          },
+          onError: () => {
+            toast.error('Failed to update transaction');
           },
         }
       );
     } else {
       createMutation.mutate(transactionData, {
         onSuccess: () => {
+          toast.info('Transaction added successfully');
           reset();
           setIsOpen(false);
+        },
+        onError: () => {
+          toast.error('Failed to add transaction');
         },
       });
     }
