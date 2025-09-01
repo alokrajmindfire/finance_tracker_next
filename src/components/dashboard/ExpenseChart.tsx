@@ -1,8 +1,9 @@
 'use client';
+
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { LoadingList, ErrorState } from '../ui/states';
 import { useSpendingOverview } from '@/hooks/dashboard';
-import ExpenseTrendsChartComponent from './ExpenseTrendsChartComponent';
+import { ExpenseTrendsChartComponent } from './ExpenseTrendsChartComponent';
 
 export default function ExpenseChart() {
   const { data, isLoading, isError } = useSpendingOverview();
@@ -13,11 +14,8 @@ export default function ExpenseChart() {
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-6 w-3/4 mb-4" aria-hidden="true" />
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-4 mb-2" aria-hidden="true" />
-          ))}
+        <CardContent className="min-h-[200px]">
+          <LoadingList rows={5} />
         </CardContent>
       </Card>
     );
@@ -29,8 +27,10 @@ export default function ExpenseChart() {
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-red-600">Failed to load expense trends.</p>
+        <CardContent className="min-h-[200px]">
+          <ErrorState
+            message={data?.error ?? 'Failed to load expense trends.'}
+          />
         </CardContent>
       </Card>
     );

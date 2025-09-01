@@ -1,120 +1,71 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { useState } from 'react';
+import { useState, useCallback, useMemo, lazy } from 'react';
 import type { CategoryBreakdownItem } from '@/lib/types/types';
 import { useDashboardCategoryBreakdown } from '@/hooks/dashboard';
+import { DateSelector } from '../ui/DateSelector';
+import { LoadingList, EmptyState } from '../ui/states';
+const ErrorState = lazy(() =>
+  import('../ui/states').then(m => ({ default: m.ErrorState }))
+);
 
-function DateSelector({
-  month,
-  year,
-  setMonth,
-  setYear,
-}: {
-  month: string;
-  year: string;
-  setMonth: (m: string) => void;
-  setYear: (y: string) => void;
-}) {
-  return (
-    <div className="flex items-center space-x-6">
-      <div className="flex gap-2">
-        <Label>Month:</Label>
-        <Select value={month} onValueChange={setMonth}>
-          <SelectTrigger className="w-24">
-            <SelectValue placeholder="Select month" />
-          </SelectTrigger>
-          <SelectContent>
-            {[...Array(12).keys()].map(m => {
-              const val = (m + 1).toString().padStart(2, '0');
-              return (
-                <SelectItem key={val} value={val}>
-                  {val}
-                </SelectItem>
-              );
-            })}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="flex gap-2">
-        <Label>Year:</Label>
-        <Input
-          type="number"
-          min={2000}
-          max={2100}
-          value={year}
-          onChange={e => setYear(e.target.value)}
-          className="w-24"
-        />
-      </div>
-    </div>
-  );
-}
+const DEFAULT_MONTH = (new Date().getMonth() + 1).toString().padStart(2, '0');
+const DEFAULT_YEAR = String(new Date().getFullYear());
 
 export function CategoryBreakdown() {
-  const [month, setMonth] = useState(
-    (new Date().getMonth() + 1).toString().padStart(2, '0')
-  );
-  const [year, setYear] = useState(String(new Date().getFullYear()));
+  const [month, setMonth] = useState(DEFAULT_MONTH);
+  const [year, setYear] = useState(DEFAULT_YEAR);
 
-  const { data, isLoading, isError } = useDashboardCategoryBreakdown(
+  const { data, isFetching, isError } = useDashboardCategoryBreakdown(
     month,
     year
   );
 
+  const handleSetMonth = useCallback((m: string) => setMonth(m), []);
+  const handleSetYear = useCallback((y: string) => setYear(y), []);
+
+  const items: CategoryBreakdownItem[] = useMemo(
+    () => data?.data ?? [],
+    [data?.data]
+  );
+
+  const content = useMemo(() => {
+    if (isFetching) return <LoadingList rows={1} />;
+    if (isError || !data?.success)
+      return <ErrorState message={data?.error ?? 'Failed to load breakdown'} />;
+    if (items.length === 0) return <EmptyState message="No expenses found." />;
+    return (
+      <ul className="space-y-3" aria-label="Category breakdown list">
+        {items.map(item => (
+          <li
+            key={item.categoryId}
+            className="flex justify-between items-center"
+          >
+            <span>{item.categoryName}</span>
+            <span className="font-mono font-semibold w-16 text-right">
+              ${item.total.toFixed(2)}
+            </span>
+          </li>
+        ))}
+      </ul>
+    );
+  }, [isFetching, isError, data?.success, items]);
+
   return (
-    <Card>
+    <Card role="region" aria-labelledby="category-breakdown-title">
       <CardHeader>
-        <CardTitle>
+        <CardTitle id="category-breakdown-title">
           Category Breakdown for {month}/{year}
         </CardTitle>
         <DateSelector
           month={month}
           year={year}
-          setMonth={setMonth}
-          setYear={setYear}
+          setMonth={handleSetMonth}
+          setYear={handleSetYear}
         />
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <>
-            <Skeleton className="h-6 w-3/4 mb-4" />
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-4 mb-2" />
-            ))}
-          </>
-        ) : isError || !data?.success ? (
-          <p className="text-red-600">
-            {data?.error ?? 'Failed to load breakdown'}
-          </p>
-        ) : (
-          <ul className="space-y-3">
-            {data.data && data.data.length === 0 ? (
-              <p className="text-gray-600">No expenses found.</p>
-            ) : (
-              data?.data?.map((item: CategoryBreakdownItem) => (
-                <li key={item.categoryId} className="flex justify-between">
-                  <span>{item.categoryName}</span>
-                  <span className="font-semibold">
-                    ${item.total.toFixed(2)}
-                  </span>
-                </li>
-              ))
-            )}
-          </ul>
-        )}
-      </CardContent>
+      <CardContent>{content}</CardContent>
     </Card>
   );
 }

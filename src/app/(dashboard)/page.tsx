@@ -1,7 +1,7 @@
-import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 import { MonthlyChart } from '@/components/dashboard/MonthlyChart';
 import ExpenseChart from '@/components/dashboard/ExpenseChart';
 import { StatsCards } from '@/components/dashboard/StatsCards';
+import { CategoryBreakdown } from '@/components/dashboard/CategoryBreakdown';
 
 export default function DashboardOverview() {
   return (
