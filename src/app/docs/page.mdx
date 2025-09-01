@@ -384,6 +384,55 @@ useSpendingOverview(); // key: ['spending-overview']
   - Build a **unified label set** (union of all `YYYY-MM` present)
   - For each category, map missing months to `0` to avoid jagged arrays
 
+---
+
+## 13) Auth Pages (UI)
+
+Authentication uses **NextAuth (credentials provider)** with custom **Login** and **Register** pages.  
+Both pages are client components (`'use client'`) and integrate with:
+
+- **react-hook-form** for controlled form state
+- **Zod validation** for inputs
+- **next-auth** `signIn()` for login
+- **server action** `registerUserAction` for registration
+- **sonner** toast notifications for feedback
+- **shadcn/ui** components for consistent UI (Card, Input, Label, Button)
+
+---
+
+### 13.1 Login Page (`/login`)
+
+- Displays a **form** with:
+  - Email (required)
+  - Password (required, min length 6)
+- On submit:
+  - Calls `signIn('credentials')`
+  - Shows error toast on failure
+  - Redirects to `/` on success
+- Features:
+  - Inline validation messages
+  - Disabled inputs while loading
+  - Loading spinner in the button
+- Footer link: _“Don’t have an account? → Sign up”_
+
+---
+
+### 13.2 Register Page (`/register`)
+
+- Displays a **form** with:
+  - Full Name (required)
+  - Email (required, unique)
+  - Password (required, min length 6)
+- On submit:
+  - Calls `registerUserAction` (server action)
+  - If success → auto-login via `signIn('credentials')` and redirect `/`
+  - If failure → show server error message
+- Features:
+  - Inline form errors
+  - Disabled inputs during submission
+  - Spinner inside button
+- Footer link: _“Already have an account? → Sign in”_
+
 ## Summary
 
 - Finance Tracker is a personal expense manager built with **Next.js, TypeScript, Tailwind, MongoDB, and React Query**.
