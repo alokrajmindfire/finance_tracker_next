@@ -11,7 +11,7 @@ export class TransactionRepository {
       })
       .sort({ date: -1 })
       .lean();
-    console.log('docs', docs);
+    // console.log('docs', docs);
     return docs.map(doc => ({
       ...doc,
       _id: doc._id.toString(),

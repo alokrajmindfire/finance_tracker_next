@@ -49,6 +49,11 @@ const transactionSchema: Schema<ITransaction> = new Schema(
   }
 );
 
+transactionSchema.index({ userId: 1, date: -1 });
+transactionSchema.index({ userId: 1, type: 1 });
+transactionSchema.index({ categoryId: 1 });
+transactionSchema.index({ userId: 1, amount: -1 });
+
 export const Transaction: Model<ITransaction> =
   (mongoose.models?.Transaction as Model<ITransaction>) ||
   mongoose.model<ITransaction>('Transaction', transactionSchema);

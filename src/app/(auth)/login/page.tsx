@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 
 type LoginFormInputs = {
   email: string;
@@ -36,8 +37,9 @@ export default function LoginPage() {
         callbackUrl: '/',
         redirect: false,
       });
-      console.log('res', res?.error);
+      // console.log('res', res);
       if (res?.error) {
+        toast.error('Login Failed');
         if (
           res.error === 'CredentialsSignin' ||
           res.error === 'Configuration'
@@ -46,8 +48,8 @@ export default function LoginPage() {
         } else {
           setError('An unexpected error occurred. Please try again.');
         }
-      }
-      if (res.ok) {
+      } else if (res.ok && res.error == undefined) {
+        toast.success('Login successfully');
         router.push('/');
       }
 

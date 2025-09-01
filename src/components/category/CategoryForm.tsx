@@ -16,6 +16,10 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { categorySchema } from '@/lib/validation/schema-validation';
+import { cn } from '@/lib/utils';
 
 type CategoryFormValues = {
   name: string;
@@ -28,7 +32,9 @@ export function CategoryForm() {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CategoryFormValues>();
+  } = useForm<CategoryFormValues>({
+    resolver: zodResolver(categorySchema),
+  });
   const { mutate, isPending, isError, error } = useCreateCategory();
 
   const onSubmit = (values: CategoryFormValues) => {
@@ -36,6 +42,12 @@ export function CategoryForm() {
       onSuccess: () => {
         reset();
         setIsOpen(false);
+        toast.success('Category added successfully');
+      },
+      onError: e => {
+        toast.error(
+          `An unexpected error occurred: ${e?.message || 'Unknown error'}`
+        );
       },
     });
   };
@@ -62,6 +74,10 @@ export function CategoryForm() {
             <Input
               id="name"
               type="text"
+              className={cn(
+                'border border-input focus-visible:ring-1 w-full',
+                errors.name && 'border-red-500 focus-visible:ring-red-500'
+              )}
               {...register('name', {
                 required: 'Category name is required',
                 minLength: {

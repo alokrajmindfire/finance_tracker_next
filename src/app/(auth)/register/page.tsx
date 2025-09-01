@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { registerUserAction } from '@/lib/actions/auth.actions';
 import { signIn } from 'next-auth/react';
+import { toast } from 'sonner';
 
 type RegisterFormInputs = {
   fullName: string;
@@ -33,22 +34,43 @@ export default function RegisterPage() {
     setLoading(true);
     setServerError('');
 
-    const formData = new FormData();
-    formData.append('fullName', data.fullName);
-    formData.append('email', data.email);
-    formData.append('password', data.password);
+    try {
+      const formData = new FormData();
+      formData.append('fullName', data.fullName);
+      formData.append('email', data.email);
+      formData.append('password', data.password);
 
-    const result = await registerUserAction(undefined, formData);
-    if (result.success) {
-      await signIn('credentials', {
-        email: data.email,
-        password: data.password,
-        callbackUrl: '/',
-      });
-    } else {
-      setServerError(result.error || 'Something went wrong. Please try again.');
+      const result = await registerUserAction(undefined, formData);
+      if (result.success) {
+        const res = await signIn('credentials', {
+          email: data.email,
+          password: data.password,
+          redirect: false,
+        });
+
+        if (res?.error) {
+          toast.error('Login failed');
+          setServerError(
+            res.error === 'CredentialsSignin' || res.error === 'Configuration'
+              ? 'Invalid email or password.'
+              : 'An unexpected error occurred. Please try again.'
+          );
+        } else {
+          toast.success('Account created and logged in successfully!');
+          router.push('/');
+        }
+      } else {
+        toast.error('Registration failed');
+        setServerError(
+          result.error || 'Something went wrong. Please try again.'
+        );
+      }
+    } catch (err) {
+      setServerError('Something went wrong. Please try again.');
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

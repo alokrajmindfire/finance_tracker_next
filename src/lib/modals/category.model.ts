@@ -25,6 +25,8 @@ const categoriesSchema: Schema<ICategory> = new Schema(
   }
 );
 
+categoriesSchema.index({ userId: 1, name: 1 }, { unique: true });
+
 export const Category: Model<ICategory> =
   mongoose.models.Category ||
   mongoose.model<ICategory>('Category', categoriesSchema);

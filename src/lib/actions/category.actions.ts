@@ -11,7 +11,7 @@ export async function getCategories() {
 
 export async function createCategory(name: string) {
   const userId = await requireUserId();
-  console.log('name', name);
+  // console.log('name', name);
   const category = await CategoryService.addCategory(userId, name);
   revalidatePath('/categories');
   return category;

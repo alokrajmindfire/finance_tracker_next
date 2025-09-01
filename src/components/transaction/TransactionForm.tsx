@@ -30,6 +30,9 @@ import {
   useUpdateTransaction,
 } from '@/hooks/transactions';
 import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { transactionSchema } from '@/lib/validation/schema-validation';
+import { cn } from '@/lib/utils';
 
 interface FormData {
   type: 'income' | 'expense';
@@ -61,6 +64,7 @@ const TransactionForm = ({ data, children }: Props) => {
     reset,
     formState: { errors },
   } = useForm<FormData>({
+    resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: 'expense',
       amount: 0,
@@ -115,7 +119,7 @@ const TransactionForm = ({ data, children }: Props) => {
         { id: data._id, data: transactionData },
         {
           onSuccess: () => {
-            toast.info('Transaction updated successfully');
+            toast.success('Transaction updated successfully');
             reset();
             setIsOpen(false);
           },
@@ -127,7 +131,7 @@ const TransactionForm = ({ data, children }: Props) => {
     } else {
       createMutation.mutate(transactionData, {
         onSuccess: () => {
-          toast.info('Transaction added successfully');
+          toast.success('Transaction added successfully');
           reset();
           setIsOpen(false);
         },
@@ -157,7 +161,14 @@ const TransactionForm = ({ data, children }: Props) => {
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className={cn(
+                      'w-full border focus-visible:ring-1',
+                      errors.type
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : 'border-input'
+                    )}
+                  >
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -181,6 +192,12 @@ const TransactionForm = ({ data, children }: Props) => {
                 type="number"
                 step="0.01"
                 min="0"
+                className={cn(
+                  'border focus-visible:ring-1',
+                  errors.amount
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : 'border-input'
+                )}
                 {...register('amount', {
                   required: 'Amount is required',
                   valueAsNumber: true,
@@ -200,6 +217,12 @@ const TransactionForm = ({ data, children }: Props) => {
               {...register('description', {
                 required: 'Description is required',
               })}
+              className={cn(
+                'w-full border focus-visible:ring-1',
+                errors.description
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : 'border-input'
+              )}
             />
             {errors.description && (
               <span className="text-red-500">{errors.description.message}</span>
@@ -214,7 +237,14 @@ const TransactionForm = ({ data, children }: Props) => {
               rules={{ required: 'Category is required' }}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className={cn(
+                      'w-full border focus-visible:ring-1',
+                      errors.categoryId
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : 'border-input'
+                    )}
+                  >
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -246,6 +276,12 @@ const TransactionForm = ({ data, children }: Props) => {
             <Input
               id="date"
               type="date"
+              className={cn(
+                'w-full border focus-visible:ring-1',
+                errors.date
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : 'border-input'
+              )}
               {...register('date', { required: 'Date is required' })}
             />
             {errors.date && (
