@@ -238,6 +238,7 @@ const TransactionForm = ({ data, children }: Props) => {
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
                   <SelectTrigger
+                    id="category"
                     className={cn(
                       'w-full border focus-visible:ring-1',
                       errors.categoryId

@@ -10,7 +10,7 @@ export default function ExpenseChart() {
 
   if (isLoading) {
     return (
-      <Card className="max-w-md">
+      <Card className="max-w-md" data-testid="expense-chart">
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>

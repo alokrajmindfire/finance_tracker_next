@@ -36,7 +36,11 @@ export const MonthlyChart: React.FC = () => {
   }, [data?.data]);
 
   return (
-    <Card role="region" aria-labelledby="monthly-summary-title">
+    <Card
+      role="region"
+      aria-labelledby="monthly-summary-title"
+      data-testid="monthly-chart"
+    >
       <CardHeader>
         <CardTitle id="monthly-summary-title">Monthly Summary</CardTitle>
         <DateSelector year={year} setYear={handleSetYear} />

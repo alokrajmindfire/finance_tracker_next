@@ -16,7 +16,7 @@ export const transactionSchema = z.object({
       message: 'Type is required',
     }),
   amount: z
-    .number()
+    .number({ message: 'Amount is required' })
     .refine(val => !isNaN(val), { message: 'Amount must be a number' })
     .min(0.01, { message: 'Amount must be positive' }),
   description: z.string().min(1, { message: 'Description is required' }),

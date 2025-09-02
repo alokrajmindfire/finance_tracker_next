@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Edit, Plus, Trash2 } from 'lucide-react';
 import TransactionForm from './TransactionForm';
 import { useDeleteTransaction } from '@/hooks/transactions';
+import { toast } from 'sonner';
 
 interface Props {
   transactions: ITransactionType[];
@@ -21,6 +22,16 @@ interface Props {
 export default function TransactionTable({ transactions, isFetching }: Props) {
   const deleteMutation = useDeleteTransaction();
 
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success('Transaction deleted successfully');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to delete transaction');
+      },
+    });
+  };
   return (
     <>
       <div className="flex justify-end mb-6">
@@ -66,7 +77,7 @@ export default function TransactionTable({ transactions, isFetching }: Props) {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() => deleteMutation.mutate(item._id)}
+                  onClick={() => handleDelete(item._id)}
                   disabled={deleteMutation.isPending}
                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                 >

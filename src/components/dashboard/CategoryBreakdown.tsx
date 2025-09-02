@@ -53,7 +53,11 @@ export function CategoryBreakdown() {
   }, [isFetching, isError, data?.success, items]);
 
   return (
-    <Card role="region" aria-labelledby="category-breakdown-title">
+    <Card
+      role="region"
+      aria-labelledby="category-breakdown-title"
+      data-testid="category-breakdown"
+    >
       <CardHeader>
         <CardTitle id="category-breakdown-title">
           Category Breakdown for {month}/{year}
