@@ -23,12 +23,16 @@ import {
   SelectItem,
 } from '@/components/ui/select';
 import type { ITransactionType } from '@/lib/types/types';
-import { useState, type ReactElement, useTransition, useEffect } from 'react';
-import {
-  createTransaction,
-  updateTransaction,
-} from '@/lib/actions/transaction.actions';
+import { useState, type ReactElement, useEffect } from 'react';
 import { getCategories } from '@/lib/actions/category.actions';
+import {
+  useCreateTransaction,
+  useUpdateTransaction,
+} from '@/hooks/transactions';
+import { toast } from 'sonner';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { transactionSchema } from '@/lib/validation/schema-validation';
+import { cn } from '@/lib/utils';
 
 interface FormData {
   type: 'income' | 'expense';
@@ -46,10 +50,13 @@ interface Props {
 const TransactionForm = ({ data, children }: Props) => {
   const isEdit = Boolean(data);
   const [isOpen, setIsOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
   const [categories, setCategories] = useState<{ _id: string; name: string }[]>(
     []
   );
+
+  const createMutation = useCreateTransaction();
+  const updateMutation = useUpdateTransaction();
+
   const {
     register,
     handleSubmit,
@@ -57,6 +64,7 @@ const TransactionForm = ({ data, children }: Props) => {
     reset,
     formState: { errors },
   } = useForm<FormData>({
+    resolver: zodResolver(transactionSchema),
     defaultValues: {
       type: 'expense',
       amount: 0,
@@ -65,6 +73,7 @@ const TransactionForm = ({ data, children }: Props) => {
       date: '',
     },
   });
+
   useEffect(() => {
     if (data) {
       reset({
@@ -74,7 +83,7 @@ const TransactionForm = ({ data, children }: Props) => {
         categoryId:
           typeof data.categoryId === 'string'
             ? data.categoryId
-            : (data?.categoryId?._id ?? ''),
+            : (data?.categoryId ?? ''),
         date: data?.date ? new Date(data.date).toISOString().slice(0, 10) : '',
       });
     } else {
@@ -87,8 +96,9 @@ const TransactionForm = ({ data, children }: Props) => {
       });
     }
   }, [data, reset]);
+
   const handleOpenChange = async (open: boolean) => {
-    setIsOpen(!isOpen);
+    setIsOpen(open);
     if (open && categories.length === 0) {
       const cats = await getCategories();
       setCategories(cats || []);
@@ -104,16 +114,35 @@ const TransactionForm = ({ data, children }: Props) => {
       date: formData.date,
     };
 
-    startTransition(async () => {
-      if (isEdit && data) {
-        await updateTransaction(data._id, transactionData);
-      } else {
-        await createTransaction(transactionData);
-      }
-      reset();
-      setIsOpen(false);
-    });
+    if (isEdit && data) {
+      updateMutation.mutate(
+        { id: data._id, data: transactionData },
+        {
+          onSuccess: () => {
+            toast.success('Transaction updated successfully');
+            reset();
+            setIsOpen(false);
+          },
+          onError: () => {
+            toast.error('Failed to update transaction');
+          },
+        }
+      );
+    } else {
+      createMutation.mutate(transactionData, {
+        onSuccess: () => {
+          toast.success('Transaction added successfully');
+          reset();
+          setIsOpen(false);
+        },
+        onError: () => {
+          toast.error('Failed to add transaction');
+        },
+      });
+    }
   };
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
@@ -125,8 +154,6 @@ const TransactionForm = ({ data, children }: Props) => {
               {isEdit ? 'Edit Transaction' : 'Add New Transaction'}
             </DialogTitle>
           </DialogHeader>
-
-          {/* Type */}
           <div className="grid gap-3">
             <Label htmlFor="type">Type</Label>
             <Controller
@@ -134,7 +161,14 @@ const TransactionForm = ({ data, children }: Props) => {
               control={control}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    className={cn(
+                      'w-full border focus-visible:ring-1',
+                      errors.type
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : 'border-input'
+                    )}
+                  >
                     <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -158,6 +192,12 @@ const TransactionForm = ({ data, children }: Props) => {
                 type="number"
                 step="0.01"
                 min="0"
+                className={cn(
+                  'border focus-visible:ring-1',
+                  errors.amount
+                    ? 'border-red-500 focus-visible:ring-red-500'
+                    : 'border-input'
+                )}
                 {...register('amount', {
                   required: 'Amount is required',
                   valueAsNumber: true,
@@ -177,6 +217,12 @@ const TransactionForm = ({ data, children }: Props) => {
               {...register('description', {
                 required: 'Description is required',
               })}
+              className={cn(
+                'w-full border focus-visible:ring-1',
+                errors.description
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : 'border-input'
+              )}
             />
             {errors.description && (
               <span className="text-red-500">{errors.description.message}</span>
@@ -191,7 +237,15 @@ const TransactionForm = ({ data, children }: Props) => {
               rules={{ required: 'Category is required' }}
               render={({ field }) => (
                 <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger className="w-full">
+                  <SelectTrigger
+                    id="category"
+                    className={cn(
+                      'w-full border focus-visible:ring-1',
+                      errors.categoryId
+                        ? 'border-red-500 focus-visible:ring-red-500'
+                        : 'border-input'
+                    )}
+                  >
                     <SelectValue placeholder="Select a category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -223,6 +277,12 @@ const TransactionForm = ({ data, children }: Props) => {
             <Input
               id="date"
               type="date"
+              className={cn(
+                'w-full border focus-visible:ring-1',
+                errors.date
+                  ? 'border-red-500 focus-visible:ring-red-500'
+                  : 'border-input'
+              )}
               {...register('date', { required: 'Date is required' })}
             />
             {errors.date && (

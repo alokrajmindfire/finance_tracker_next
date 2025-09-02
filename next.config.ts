@@ -1,7 +1,22 @@
-import type { NextConfig } from 'next';
+import { NextConfig } from 'next';
+import nextra from 'nextra';
 
+const withNextra = nextra({
+  latex: true,
+  search: {
+    codeblocks: false,
+  },
+  contentDirBasePath: '/docs',
+});
 const nextConfig: NextConfig = {
-  /* config options here */
+  images: {
+    unoptimized: true,
+  },
+  turbopack: {
+    resolveAlias: {
+      'next-mdx-import-source-file': './src/mdx-components.tsx',
+    },
+  },
 };
 
-export default nextConfig;
+export default withNextra(nextConfig);

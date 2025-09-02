@@ -1,0 +1,12 @@
+.nextra-mobile-nav {
+  background: aliceblue;
+}
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border: none !important;
+  }
+}

@@ -1,55 +1,40 @@
 'use client';
 
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
-import { ExpenseTrendsChart } from '@/lib/types/types';
-import { useEffect, useState } from 'react';
-import { getSpendingOverview } from '@/lib/actions/transaction.actions';
-import ExpenseTrendsChartComponent from './ExpenseTrendsChartComponent';
+import { LoadingList, ErrorState } from '../ui/states';
+import { useSpendingOverview } from '@/hooks/dashboard';
+import { ExpenseTrendsChartComponent } from './ExpenseTrendsChartComponent';
 
 export default function ExpenseChart() {
-  const [data, setData] = useState<ExpenseTrendsChart | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { data, isLoading, isError } = useSpendingOverview();
 
-  useEffect(() => {
-    getSpendingOverview()
-      .then(res => {
-        if (res.success) setData(res.data);
-        else setError(res.error ?? 'Failed to load');
-      })
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <Card className="max-w-md">
+      <Card className="max-w-md" data-testid="expense-chart">
         <CardHeader>
-          <CardTitle>Monthly Summary</CardTitle>
+          <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-6 w-3/4 mb-4" />
-          {[...Array(5)].map((_, i) => (
-            <Skeleton key={i} className="h-4 mb-2" />
-          ))}
+        <CardContent className="min-h-[200px]">
+          <LoadingList rows={5} />
         </CardContent>
       </Card>
     );
   }
 
-  if (error || !data) {
+  if (isError || !data?.success) {
     return (
       <Card className="max-w-md">
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
-        <CardContent>
-          <p className="text-red-600">Failed to load monthly summary.</p>
+        <CardContent className="min-h-[200px]">
+          <ErrorState
+            message={data?.error ?? 'Failed to load expense trends.'}
+          />
         </CardContent>
       </Card>
     );
   }
 
-  return <ExpenseTrendsChartComponent data={data} />;
+  return <ExpenseTrendsChartComponent data={data.data} />;
 }

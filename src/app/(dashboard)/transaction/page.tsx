@@ -1,24 +1,17 @@
-import { getTransactions } from '@/lib/actions/transaction.actions';
-import { ITransactionType } from '@/lib/types/types';
-import dynamic from 'next/dynamic';
-const TransactionTable = dynamic(
-  () => import('@/components/transaction/TransactionTable'),
-  { loading: () => <p>Loading...</p> }
-);
-export default async function TransactionsPage() {
-  let transactions: ITransactionType[] = [];
+'use client';
+import TransactionTable from '@/components/transaction/TransactionTable';
+import { useTransactions } from '@/hooks/transactions';
 
-  try {
-    transactions = await getTransactions();
-  } catch (e: any) {
-    return <div className="text-red-500">Failed to load: {e.message}</div>;
-  }
+export default function TransactionsPage() {
+  const { data, isLoading, isError, error, isFetching } = useTransactions();
 
-  console.log('transactions', transactions);
+  if (isLoading) return <p className="p-4">Loading transactions...</p>;
+  if (isError)
+    return <p className="p-4 text-red-500">Error: {error?.message}</p>;
 
   return (
     <div className="p-4">
-      <TransactionTable transactions={transactions} />
+      <TransactionTable transactions={data ?? []} isFetching={isFetching} />
     </div>
   );
 }

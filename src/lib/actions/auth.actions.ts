@@ -3,10 +3,6 @@ import {
   registerUser,
   requireUserIdService,
 } from '@/lib/services/auth.service';
-import { auth } from '../auth';
-import { UserRepository } from '../repositories/user.repository';
-
-const userRepo = new UserRepository();
 
 export async function registerUserAction(
   prevState: string | undefined,

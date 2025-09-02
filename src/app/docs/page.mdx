@@ -1,0 +1,444 @@
+---
+title: Finance Tracker
+description: End-to-end documentation for the Finance Tracker application — architecture, models, repositories, services, server actions, hooks, UI, validation, auth, data flows, caching, and extension points.
+toc: true
+---
+
+import { Callout, Steps, Cards, Tab, Tabs } from 'nextra/components';
+
+# Finance Tracker
+
+## 1) Description
+
+A personal **Finance Tracker** that lets an authenticated user:
+
+- Create, update, delete, and view **transactions** (income/expense).
+- Manage **categories**.
+- See a **dashboard** with **Stats**, **Category Breakdown**, **Monthly Summary**, and **Expense Trends**.
+
+**Stack**: Next.js (App Router), TypeScript, Tailwind, shadcn/ui, lucide-react, Recharts, TanStack Query, MongoDB + Mongoose, Zod.
+
+---
+
+## 2) Architecture
+
+```text
+UI (Pages + Components)
+  └─ React Query Hooks (client)
+      └─ Server Actions (Next.js "use server")
+          └─ Services (business logic / aggregation)
+              └─ Repositories (Mongoose queries / pipelines)
+                  └─ MongoDB (User, Category, Transaction)
+```
+
+**Key principles**
+
+- **Separation of concerns**: UI ↔ hooks ↔ actions ↔ services ↔ repositories ↔ DB
+- **Typed boundaries** with TS interfaces
+- **Cache-first** data fetching with React Query
+- **Aggregation** done server-side (Mongo pipelines) for performance
+
+---
+
+## 3) Project structure
+
+```text
+src/
+  components/
+    dashboard/
+      CategoryBreakdown.tsx
+      MonthlyChart.tsx
+      ExpenseChart.tsx
+      StatsCards.tsx
+    transaction/
+      TransactionTable.tsx
+      TransactionForm.tsx
+    ui/
+      table.tsx, card.tsx, button.tsx, dialog.tsx, states.tsx, input.tsx, label.tsx
+      format.ts  (e.g., formatCurrency)
+  hooks/
+    dashboard.ts
+    transactions.ts
+    categories.ts
+  lib/
+    actions/
+      dashboard.actions.ts
+      transaction.actions.ts
+      category.actions.ts
+      auth.actions.ts
+    repositories/
+      transaction.repository.ts
+      category.repository.ts
+      user.repository.ts
+    services/
+      dashboard.service.ts (OverviewService)
+      transaction.service.ts (TransactionService)
+      category.service.ts (CategoryService)
+    modals/
+      user.model.ts
+      category.model.ts
+      transaction.model.ts
+    types/
+      types.ts
+    validation/
+      schema-validation.ts
+    auth.ts (session)
+  middleware.ts (route protection)
+```
+
+<Callout type="info">
+  Names/paths reflect your snippets; adjust if your actual repo differs. Keep
+  the layering the same.
+</Callout>
+
+---
+
+## 4) Data model
+
+### 4.1 User
+
+- **email** (unique), **fullName**, **password** (hashed)
+- Timestamps enabled
+
+**Notes**
+
+- Password hashing is done during **registration** (`bcrypt`).
+- Access via `UserRepository` (create/find/exists).
+
+### 4.2 Category
+
+- **name** (string, required)
+- **userId** (ObjectId → User)
+- Timestamps enabled
+
+### 4.3 Transaction
+
+- **amount** (number, ≥ 0.01)
+- **type** (`income` | `expense`)
+- **categoryId** (ObjectId → Category)
+- **description** (string, trim)
+- **date** (Date, default: now)
+- **userId** (ObjectId → User)
+- Timestamps enabled
+
+---
+
+## 5) Repository layer (DB access)
+
+It return **lean/plain** objects, and keep a single place for querys.
+
+### 5.1 `UserRepository`
+
+- `create({ fullName, email, password })` → `IUser`
+- `findByEmail(email)` → `IUser | null`
+- `exists(email)` → `boolean`
+
+### 5.2 `CategoryRepository`
+
+- `findByUserId(userId)` → plain list of categories (id & timestamps as strings)
+- `createCategory({ name, userId })` → `Category`
+
+### 5.3 `TransactionRepository`
+
+- `findAllByUser(userId)` → transactions with populated `categoryName` and normalized IDs
+- `create(data)` / `update(id, data)` / `delete(id)`
+- `aggregate(pipeline)` → used by services to compute stats, breakdowns, trends
+
+<Callout>
+  The repository returns **normalized** objects (string IDs, string dates) to
+  prevent hydration quirks in React.
+</Callout>
+
+---
+
+## 6) Service layer
+
+### 6.1 `OverviewService`
+
+**Purpose:** Provide dashboard data at a glance.
+
+- `getOverview(userId: ObjectId)` → `{ totalIncome, totalExpense, currentBalance }`
+  - Sums `amount` for `type=income` and `type=expense`.
+- `getCategoryBreakdown(userId, month, year)` → array of `{ categoryId, categoryName, total }` for the given month.
+  - Filters `type=expense` between `[startOfMonth, startOfNextMonth)`.
+  - `$group` by `categoryId`; `$lookup` into `categories`.
+- `getMonthlySummary(userId, year)` → `[{ month, income, expenses }]` for **all 12 months**
+  - Groups by `{ $month(date), type }` and folds into an ordered array with zeros for missing months.
+
+### 6.2 `TransactionService`
+
+**Purpose:** CRUD + advanced analytics for spending.
+
+- `getAll(userId)` → repository passthrough
+- `create/update/delete` → repository passthrough
+- `getSpendingOverview(userId, startDate?, endDate?)` →
+  - `monthlyExpenses`: labels = `YYYY-MM`, values = monthly totals for expenses
+  - `categoryExpenses`: top categories by total
+  - `categoryTrends`: per-category monthly series aligned to a **unified label set** (fill missing with 0)
+  - Validates date inputs (throws `ApiError(400)`) to avoid NaN dates
+
+### 6.3 `CategoryService`
+
+**Purpose:** Category operations with basic validation.
+
+- `getCategories(userId)` → list
+- `addCategory(userId, name)` → validates non-empty name; returns normalized DTO
+
+---
+
+## 7) Server actions (`use server`)
+
+Server actions provide a **typed boundary** between client and server. They call services and **revalidate** relevant paths.
+
+### 7.1 Transactions
+
+- `getTransactions()` → returns `ITransactionType[]`
+- `createTransaction(data)` → `revalidatePath('/transactions')`
+- `updateTransaction(id, data)` → `revalidatePath('/transactions')`
+- `deleteTransaction(id)` → `revalidatePath('/transactions')`
+- `getSpendingOverview()` → `{ success, data? | error? }`
+
+**Auth**: each mutating action calls `requireUserId()` (or `requireUserIdService()`) to verify session.
+
+### 7.2 Dashboard
+
+- `getDashboardOverview()` → `{ success, data: DashboardStats } | { success: false, error }`
+- `getDashboardCategoryBreakdown(month, year)` → category totals
+- `getDashboardMonthlySummary(year)` → monthly income vs expenses
+
+**Error policy**: Errors are caught and folded into `{ success: false, error: message }` for safe client handling.
+
+---
+
+## 8) React Query hooks (client)
+
+Hooks define **stable cache keys** and handle **loading/error/fetching** states.
+
+### 8.1 Categories
+
+```ts
+useCategories(); // key: ['categories']
+useCreateCategory(); // invalidates: ['categories'] on success
+```
+
+### 8.2 Transactions
+
+```ts
+useTransactions(); // key: ['transactions'], retry: 1
+useCreateTransaction(); // invalidates: ['transactions']
+useUpdateTransaction(); // invalidates: ['transactions']
+useDeleteTransaction(); // invalidates: ['transactions']
+```
+
+### 8.3 Dashboard
+
+```ts
+useDashboardOverview(); // key: ['dashboard-overview'], retry: 1
+useDashboardCategoryBreakdown(m, y); // key: ['category-breakdown', m, y], enabled: !!m && !!y
+useDashboardMonthlySummary(y); // key: ['monthly-summary', y], retry: 2
+useSpendingOverview(); // key: ['spending-overview']
+```
+
+**Cache design tips**
+
+- Keep **static parts first**: `['category-breakdown', month, year]` (good for partial invalidation).
+- Invalidate narrow keys only (avoid nuking the entire cache).
+
+---
+
+## 9) UI composition
+
+### 9.1 Dashboard (page)
+
+```tsx
+<StatsCards />
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <CategoryBreakdown />
+  <MonthlyChart />
+</div>
+<ExpenseChart />
+```
+
+**StatsCards**
+
+- Reads `useDashboardOverview()`
+- Accessibility: cards include `aria-label` (e.g., "Total Balance: $X")
+- Visual cues: colorize values (`text-green-600` vs `text-red-600`)
+
+**Loading & Error patterns**
+
+- Use `LoadingCards`, `ErrorState`, and `EmptyState`
+- Keep **skeletons** for perceived performance
+
+### 9.2 Transactions page + table
+
+- Page uses `useTransactions()`; renders `TransactionTable` with `isFetching` hint ("Refreshing...")
+- `TransactionTable` supports **Add**, **Edit**, **Delete** with:
+  - `TransactionForm` (in `Dialog`) for creation & updates
+  - `useDeleteTransaction()` for deletion (button disabled during pending)
+  - Consistent iconography via `lucide-react`
+
+**Currency formatting**
+
+- `formatCurrency` utility (e.g., `Intl.NumberFormat`) for amounts
+- Apply to StatsCards and tables for consistent locale output
+
+### 9.3 Categories page + management
+
+**CategoryForm**
+
+- Opens in a `Dialog` for creating new categories
+- Validation powered by **zod** + **react-hook-form** (`categorySchema`)
+- Inline error messages for better UX
+- Uses toast for success/error notifications
+- Save button disabled while mutation is pending
+
+**Category list**
+
+- Data fetched via `useCategories()`
+- Handles **Loading**, **Error**, and **Empty** states
+- Responsive grid layout: 1 → 2 → 3 columns
+- Cards display category name with semantic styling
+
+**CategoryCard**
+
+- Displays the category name with semantic styling
+- Encapsulated as a reusable card component
+- Supports responsive grid container
+
+---
+
+## 10) Validation & form UX (Zod)
+
+### 10.1 Category form
+
+- `categorySchema` enforces `name` min length and required
+- `react-hook-form` + `zodResolver`
+- Toasts via `sonner` for success/error
+- Dialog closes on success; form reset to prevent stale input
+
+### 10.2 Transaction form
+
+- `transactionSchema` enforces:
+  - `type` ∈ `income` | `expense`
+  - `amount` number ≥ 0.01 (reject NaN)
+  - `description`, `categoryId`, `date` required
+- Show inline errors near inputs; disable submit while pending
+
+<Callout type="warning">
+  Always convert numeric inputs to numbers before validation (e.g.,
+  `parseFloat`). HTML inputs deliver strings by default.
+</Callout>
+
+---
+
+## 11) Authentication & middleware
+
+- Middleware guards routes:
+  - **Public**: `/login`, `/register`
+  - **Common**: `/docs` (always allowed)
+  - Authenticated users visiting public routes → redirected to `/`
+  - Unauthenticated users visiting private routes → redirected to `/login`
+- `requireUserId()` / `requireUserIdService()`
+  - Pulls session via `auth()`
+  - Resolves the DB user and returns its string `_id`
+  - Throws if missing → prevents unauthenticated access inside actions/services
+
+**Security checklist**
+
+- Always **hash** passwords on registration (`bcryptjs`, salt rounds ≥ 12)
+- Never log plaintext credentials
+- Use `httpOnly`, `secure` cookies in production
+- Validate **every** input with Zod before DB writes
+
+---
+
+## 12) Dashboard analytics (how the numbers are built)
+
+### 12.1 Overview totals
+
+- Two aggregations:
+  - Sum of `amount` where `type=income`
+  - Sum of `amount` where `type=expense`
+- `currentBalance = income - expense`
+
+### 12.2 Category breakdown (month/year)
+
+- Build `[startOfMonth, startOfNextMonth)` window
+- `$match: { userId, type: 'expense', date: { $gte, $lt } }`
+- `$group` by `categoryId`, sum `amount`
+- `$lookup` `categories` to get `category.name`
+
+### 12.3 Monthly summary (year)
+
+- `$match` within `[Jan 1, (year+1) Jan 1)`
+- `$group` by `{ month: $month(date), type }`
+- Post-process into `[{ month: 'January', income, expenses }, ...]`
+- Fill missing months with zeros to stabilize charts
+
+### 12.4 Spending overview (advanced)
+
+- **Monthly expenses**: `YYYY-MM` labels, totals for `type=expense`
+- **Category totals**: sum by `categoryId` + lookup names
+- **Category trends**: per-category series
+  - Build a **unified label set** (union of all `YYYY-MM` present)
+  - For each category, map missing months to `0` to avoid jagged arrays
+
+---
+
+## 13) Auth Pages (UI)
+
+Authentication uses **NextAuth (credentials provider)** with custom **Login** and **Register** pages.  
+Both pages are client components (`'use client'`) and integrate with:
+
+- **react-hook-form** for controlled form state
+- **Zod validation** for inputs
+- **next-auth** `signIn()` for login
+- **server action** `registerUserAction` for registration
+- **sonner** toast notifications for feedback
+- **shadcn/ui** components for consistent UI (Card, Input, Label, Button)
+
+---
+
+### 13.1 Login Page (`/login`)
+
+- Displays a **form** with:
+  - Email (required)
+  - Password (required, min length 6)
+- On submit:
+  - Calls `signIn('credentials')`
+  - Shows error toast on failure
+  - Redirects to `/` on success
+- Features:
+  - Inline validation messages
+  - Disabled inputs while loading
+  - Loading spinner in the button
+- Footer link: _“Don’t have an account? → Sign up”_
+
+---
+
+### 13.2 Register Page (`/register`)
+
+- Displays a **form** with:
+  - Full Name (required)
+  - Email (required, unique)
+  - Password (required, min length 6)
+- On submit:
+  - Calls `registerUserAction` (server action)
+  - If success → auto-login via `signIn('credentials')` and redirect `/`
+  - If failure → show server error message
+- Features:
+  - Inline form errors
+  - Disabled inputs during submission
+  - Spinner inside button
+- Footer link: _“Already have an account? → Sign in”_
+
+## Summary
+
+- Finance Tracker is a personal expense manager built with **Next.js, TypeScript, Tailwind, MongoDB, and React Query**.
+- Users can **add, edit, delete, and view** income and expense transactions.
+- Supports **categories** for better organization and filtering.
+- The **dashboard** shows stats, category breakdown, monthly summary, and expense trends.
+- All input is validated with **Zod** and managed with **react-hook-form** for better UX.
+- Authentication and route protection ensure secure access to data.
+- Architecture follows clean layering: **UI → hooks → actions → services → repositories → DB**.

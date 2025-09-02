@@ -16,8 +16,9 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { Skeleton } from '../ui/skeleton';
-import type { ExpenseTrendsChart } from '@/types';
+import { memo, useMemo } from 'react';
+import { LoadingList, ErrorState, EmptyState } from '../ui/states';
+import type { ExpenseTrendsChart } from '@/lib/types/types';
 
 interface ExpenseTrendsChartProps {
   data?: ExpenseTrendsChart;
@@ -27,149 +28,137 @@ interface ExpenseTrendsChartProps {
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export default function ExpenseTrendsChartComponent({
-  data,
-  isLoading,
-  error,
-}: ExpenseTrendsChartProps) {
-  // 🔹 Loading state
-  if (isLoading) {
+export const ExpenseTrendsChartComponent = memo(
+  ({ data, isLoading, error }: ExpenseTrendsChartProps) => {
+    if (isLoading) {
+      return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i} className="h-72 flex items-center justify-center">
+              <LoadingList rows={5} />
+            </Card>
+          ))}
+        </div>
+      );
+    }
+
+    if (error) return <ErrorState message={error} />;
+
+    if (!data) return <EmptyState message="No expense trends available." />;
+
+    const { monthlyExpenses, categoryExpenses, categoryTrends, labels } = data;
+
+    const monthlyData = useMemo(() => {
+      return labels.map((label, i) => ({
+        month: label,
+        expenses: monthlyExpenses.values[i] ?? 0,
+      }));
+    }, [labels, monthlyExpenses.values]);
+
+    const trendData = useMemo(() => {
+      return labels.map((label, idx) => {
+        const entry: Record<string, string | number> = { month: label };
+        Object.keys(categoryTrends).forEach(cat => {
+          entry[cat] = categoryTrends[cat]?.[idx] ?? 0;
+        });
+        return entry;
+      });
+    }, [labels, categoryTrends]);
+
+    const pieData = useMemo(() => {
+      return categoryExpenses.categories.map((cat, i) => ({
+        name: cat,
+        value: categoryExpenses.values[i] ?? 0,
+      }));
+    }, [categoryExpenses]);
+
     return (
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="h-72 flex items-center justify-center">
-            <Skeleton className="h-40 w-3/4" />
-          </Card>
-        ))}
+        {/* Monthly Expenses */}
+        <Card className="col-span-1 lg:col-span-2 min-h-[280px]">
+          <CardHeader>
+            <CardTitle>Monthly Expenses</CardTitle>
+          </CardHeader>
+          <CardContent className="h-72 flex justify-center items-center">
+            {!monthlyData.length ? (
+              <EmptyState message="No monthly expenses found." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Category Distribution */}
+        <Card className="min-h-[280px]">
+          <CardHeader>
+            <CardTitle>Category Distribution</CardTitle>
+          </CardHeader>
+          <CardContent className="h-72 flex justify-center items-center">
+            {!pieData.length ? (
+              <EmptyState message="No category distribution found." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Category Trends */}
+        <Card className="col-span-1 lg:col-span-3 min-h-[320px]">
+          <CardHeader>
+            <CardTitle>Category Trends Over Time</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80 flex justify-center items-center">
+            {!trendData.length ? (
+              <EmptyState message="No category trends found." />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={trendData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {Object.keys(categoryTrends).map((cat, i) => (
+                    <Line
+                      key={cat}
+                      type="monotone"
+                      dataKey={cat}
+                      stroke={COLORS[i % COLORS.length]}
+                      strokeWidth={2}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
       </div>
     );
   }
-
-  // 🔹 Error state
-  if (error) {
-    return (
-      <Card className="p-4">
-        <p className="text-red-600">Failed to load expense trends: {error}</p>
-      </Card>
-    );
-  }
-
-  // 🔹 Empty state
-  if (!data) {
-    return (
-      <Card className="p-4">
-        <p className="text-gray-600">No expense trends available.</p>
-      </Card>
-    );
-  }
-
-  // ✅ Transform data for charts
-  const { monthlyExpenses, categoryExpenses, categoryTrends, labels } = data;
-
-  const monthlyData = labels.map((label, i) => ({
-    month: label,
-    expenses: monthlyExpenses.values[i] ?? 0,
-  }));
-
-  const trendData = labels.map((label, idx) => {
-    const entry: Record<string, number | string> = { month: label };
-    Object.keys(categoryTrends).forEach(cat => {
-      entry[cat] = categoryTrends[cat][idx] ?? 0;
-    });
-    return entry;
-  });
-
-  const pieData = categoryExpenses.categories.map((cat, i) => ({
-    name: cat,
-    value: categoryExpenses.values[i] ?? 0,
-  }));
-
-  return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Monthly Bar Chart */}
-      <Card className="col-span-1 lg:col-span-2">
-        <CardHeader>
-          <CardTitle>Monthly Expenses</CardTitle>
-        </CardHeader>
-        <CardContent className="h-72 flex justify-center items-center">
-          {!monthlyData.length ? (
-            <p className="text-gray-600">No monthly expenses found.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="expenses" fill="#ef4444" name="Expenses" />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Category Pie Chart */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Category Distribution</CardTitle>
-        </CardHeader>
-        <CardContent className="h-72 flex justify-center items-center">
-          {!pieData.length ? (
-            <p className="text-gray-600">No category distribution found.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Category Trends Line Chart */}
-      <Card className="col-span-1 lg:col-span-3">
-        <CardHeader>
-          <CardTitle>Category Trends Over Time</CardTitle>
-        </CardHeader>
-        <CardContent className="h-80 flex justify-center items-center">
-          {!trendData.length ? (
-            <p className="text-gray-600">No category trends found.</p>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip />
-                <Legend />
-                {Object.keys(categoryTrends).map((cat, i) => (
-                  <Line
-                    key={cat}
-                    type="monotone"
-                    dataKey={cat}
-                    stroke={COLORS[i % COLORS.length]}
-                    strokeWidth={2}
-                  />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
+);

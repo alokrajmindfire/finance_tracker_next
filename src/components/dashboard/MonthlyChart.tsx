@@ -1,4 +1,5 @@
 'use client';
+
 import {
   BarChart,
   Bar,
@@ -10,74 +11,63 @@ import {
   Legend,
 } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '../ui/skeleton';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
-import { useState } from 'react';
-import { getDashboardMonthlySummary } from '@/lib/actions/dashboard.actions';
+import { useState, useMemo, useCallback } from 'react';
+import type { MonthlySummaryItem } from '@/lib/types/types';
+import { useDashboardMonthlySummary } from '@/hooks/dashboard';
+import { DateSelector } from '../ui/DateSelector';
+import { LoadingList, ErrorState, EmptyState } from '../ui/states';
 
-function YearSelector({
-  year,
-  setYear,
-}: {
-  year: string;
-  setYear: (y: string) => void;
-}) {
-  return (
-    <div className="flex items-center space-x-6">
-      <div className="flex gap-2">
-        <Label htmlFor="year">Year: </Label>
-        <Input
-          id="year"
-          type="number"
-          min={2000}
-          max={2100}
-          value={year}
-          onChange={e => setYear(e.target.value)}
-          className="w-24"
-        />
-      </div>
-    </div>
-  );
-}
+const DEFAULT_YEAR = String(new Date().getFullYear());
 
 export const MonthlyChart: React.FC = () => {
-  const [year, setYear] = useState(String(new Date().getFullYear()));
-  const res = getDashboardMonthlySummary(year);
+  const [year, setYear] = useState(DEFAULT_YEAR);
 
-  if (!res.success || !res.data) {
-    throw new Error(res.error ?? 'Failed to load monthly summary');
-  }
+  const { data, isFetching, isError } = useDashboardMonthlySummary(year);
+
+  const handleSetYear = useCallback((y: string) => setYear(y), []);
+
+  const chartData: MonthlySummaryItem[] = useMemo(() => {
+    if (!data?.data) return [];
+    return data.data.map(item => ({
+      ...item,
+      income: Number(item.income.toFixed(2)),
+      expenses: Number(item.expenses.toFixed(2)),
+    }));
+  }, [data?.data]);
+
   return (
-    <Card>
+    <Card
+      role="region"
+      aria-labelledby="monthly-summary-title"
+      data-testid="monthly-chart"
+    >
       <CardHeader>
-        <CardTitle>Monthly Summary</CardTitle>
-        <YearSelector year={year} setYear={setYear} />
+        <CardTitle id="monthly-summary-title">Monthly Summary</CardTitle>
+        <DateSelector year={year} setYear={handleSetYear} />
       </CardHeader>
-      <CardContent>
-        {isLoading ? (
-          <div className="h-72">
-            <Skeleton className="h-6 w-3/4 mb-4" />
-            {[...Array(5)].map((_, i) => (
-              <Skeleton key={i} className="h-4 mb-2" />
-            ))}
-          </div>
-        ) : isError || !monthlySummary?.success ? (
-          <p className="text-red-600">Failed to load category breakdown.</p>
+      <CardContent className="min-h-[280px]">
+        {isFetching ? (
+          <LoadingList rows={5} />
+        ) : isError || !data?.success ? (
+          <ErrorState
+            message={data?.error ?? 'Failed to load monthly summary'}
+          />
+        ) : chartData.length === 0 ? (
+          <EmptyState message="No monthly summary found." />
         ) : (
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={monthlySummary.data}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
                 <YAxis tickFormatter={value => `$${value.toLocaleString()}`} />
                 <Tooltip
-                  formatter={(value: number) => [
+                  formatter={(value: number) =>
                     new Intl.NumberFormat('en-US', {
                       style: 'currency',
                       currency: 'USD',
-                    }).format(value),
-                  ]}
+                    }).format(value)
+                  }
                 />
                 <Legend />
                 <Bar dataKey="income" fill="#10b981" name="Income" />

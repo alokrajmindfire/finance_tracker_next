@@ -1,5 +1,4 @@
 'use client';
-
 import { ITransactionType } from '@/lib/types/types';
 import {
   Table,
@@ -11,22 +10,28 @@ import {
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Edit, Plus, Trash2 } from 'lucide-react';
-// import { TransactionForm } from './TransactionForm';
-import { deleteTransaction } from '@/lib/actions/transaction.actions';
-import { useTransition } from 'react';
-import dynamic from 'next/dynamic';
-const TransactionForm = dynamic(() => import('./TransactionForm'), {
-  ssr: false,
-  loading: () => <span>Loading form...</span>,
-});
+import TransactionForm from './TransactionForm';
+import { useDeleteTransaction } from '@/hooks/transactions';
+import { toast } from 'sonner';
 
 interface Props {
   transactions: ITransactionType[];
+  isFetching?: boolean;
 }
 
-const TransactionTable = ({ transactions }: Props) => {
-  const [isPending, startTransition] = useTransition();
+export default function TransactionTable({ transactions, isFetching }: Props) {
+  const deleteMutation = useDeleteTransaction();
 
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id, {
+      onSuccess: () => {
+        toast.success('Transaction deleted successfully');
+      },
+      onError: (error: any) => {
+        toast.error(error?.message || 'Failed to delete transaction');
+      },
+    });
+  };
   return (
     <>
       <div className="flex justify-end mb-6">
@@ -41,6 +46,11 @@ const TransactionTable = ({ transactions }: Props) => {
           </Button>
         </TransactionForm>
       </div>
+
+      {isFetching && (
+        <p className="text-sm text-gray-500 mb-2">Refreshing...</p>
+      )}
+
       <Table>
         <TableHeader>
           <TableRow>
@@ -67,10 +77,8 @@ const TransactionTable = ({ transactions }: Props) => {
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() =>
-                    startTransition(() => deleteTransaction(item._id))
-                  }
-                  disabled={isPending}
+                  onClick={() => handleDelete(item._id)}
+                  disabled={deleteMutation.isPending}
                   className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                 >
                   <Trash2 className="h-3 w-3" />
@@ -82,5 +90,4 @@ const TransactionTable = ({ transactions }: Props) => {
       </Table>
     </>
   );
-};
-export default TransactionTable;
+}
