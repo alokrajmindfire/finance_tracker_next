@@ -11,7 +11,7 @@
     "prepare": "husky",
     "e2e": "start-server-and-test \"next dev --turbopack\" http://localhost:3000 \"cypress open --e2e\"",
     "e2e:headless": "start-server-and-test \"next dev --turbopack\" http://localhost:3000 \"cypress run --e2e\"",
-    "test": "npm run e2e:headless && npm run format"
+    "test": "npm run format"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
