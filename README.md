@@ -2,7 +2,19 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
-First, run the development server:
+## 🐳 Run Locally with Docker
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/alokrajmindfire/finance_tracker_next.git
+cd finance_tracker_next
+
+docker-compose build
+docker-compose up
+```
+
+Run the development server:
 
 ```bash
 npm run dev
