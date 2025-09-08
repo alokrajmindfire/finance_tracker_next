@@ -14,14 +14,14 @@ import Spinner from '@/components/ui/spinner';
 export default function NotFound() {
   const { data: session, status } = useSession();
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+    <div className="flex items-center justify-center min-h-screen p-4">
       <Card className="max-w-md w-full text-center shadow-lg">
         <CardHeader>
           <CardTitle className="text-6xl">404</CardTitle>
           <CardDescription>Oops! Page not found.</CardDescription>
         </CardHeader>
         <CardContent>
-          <p className="mb-6 text-gray-600">
+          <p className="mb-6">
             The resource you are looking for might have been removed, had its
             name changed, or is temporarily unavailable.
           </p>

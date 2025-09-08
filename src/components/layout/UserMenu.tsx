@@ -22,7 +22,7 @@ export default function UserMenu() {
 
   return (
     <div className="flex items-center space-x-4">
-      <span className="text-sm text-gray-600">
+      <span className="hidden sm:inline text-sm text-gray-600 dark:text-gray-200">
         Welcome, {session.user.name}
       </span>
       <Button

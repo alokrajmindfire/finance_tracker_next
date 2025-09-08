@@ -48,7 +48,9 @@ export default function TransactionTable({ transactions, isFetching }: Props) {
       </div>
 
       {isFetching && (
-        <p className="text-sm text-gray-500 mb-2">Refreshing...</p>
+        <p className="text-sm text-gray-500 mb-2 dark:text-gray-200">
+          Refreshing...
+        </p>
       )}
 
       <Table>
