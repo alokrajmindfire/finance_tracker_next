@@ -17,6 +17,15 @@ const nextConfig: NextConfig = {
       'next-mdx-import-source-file': './src/mdx-components.tsx',
     },
   },
+  logging: {
+    fetches: {
+      fullUrl: true,
+      hmrRefreshes: true,
+    },
+    incomingRequests: {
+      ignore: [/\/api\/v1\/health/],
+    },
+  },
 };
 
 export default withNextra(nextConfig);
