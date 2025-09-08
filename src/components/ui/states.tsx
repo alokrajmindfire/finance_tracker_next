@@ -43,5 +43,5 @@ export function EmptyState({
 }: {
   message?: string;
 }) {
-  return <p className="text-gray-600">{message}</p>;
+  return <p className="text-gray-600 dark:text-gray-200">{message}</p>;
 }

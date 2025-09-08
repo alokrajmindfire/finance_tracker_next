@@ -19,9 +19,7 @@ const StatCard = ({ title, value, Icon, color }: StatCardProps) => (
     aria-label={`${title}: ${formatCurrency(value)}`}
   >
     <CardHeader className="flex flex-row items-center justify-between pb-2">
-      <CardTitle className="text-sm font-medium text-gray-600">
-        {title}
-      </CardTitle>
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
       <Icon className={`h-4 w-4 ${color}`} aria-hidden="true" />
     </CardHeader>
     <CardContent>
